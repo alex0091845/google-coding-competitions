@@ -19,8 +19,8 @@
 | Greedy | 0 | | |
 | Sorting, two pointers, sweep line | 0 | | |
 | Binary search (incl. on the answer) | 0 | | |
-| Prefix sums / difference arrays | 0 | | |
-| Bit manipulation | 0 | | |
+| Prefix sums / difference arrays | 2 | Building Palindromes (H, 93m) | Came up with the prefix + subtract-at-query idea alone; prior exposure to this problem, so confirm on a fresh problem |
+| Bit manipulation | 2 | Building Palindromes (H) | Suspected gap: Python int-as-bitset ops (`1 << k`, `^`, popcount) needed a hint |
 | Strings & hashing (tries, KMP, rolling hash) | 0 | | |
 | Graphs: BFS / DFS / connectivity | 0 | | |
 | Graphs: shortest paths, MST, union-find | 0 | | |
@@ -32,7 +32,7 @@
 | Geometry | 0 | | |
 | Constructive / ad hoc | 0 | | |
 | Interactive problems | 0 | | |
-| Python performance & fast I/O | 0 | | |
+| Python performance & fast I/O | 2 | Building Palindromes (H) | Uses the token-iterator template now; needed it shown once |
 
 ## Reviews
 

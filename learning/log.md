@@ -7,3 +7,4 @@ One row per attempt. Re-attempts get a new row.
 
 | Date | Problem | Contest | Topics | Outcome | Time | Tests (sample / sets) | Mistakes | Key lesson |
 |------|---------|---------|--------|---------|------|-----------------------|----------|------------|
+| 2026-11-21 | Building Palindromes | KS 2022 Practice Session 2 | prefix sums, bitmask parity | H | 93m | 1/1 · 2/2 | — (slow: stuck on representation) | Only parity matters → prefix XOR of a 26-bit int mask; query = one XOR + popcount ≤ 1 |

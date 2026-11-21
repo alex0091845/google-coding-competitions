@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+  --accent: #2f6fde; --accent-soft: #e8f0fd; --ok: #1f8a4c; --ok-soft: #e4f4ea;
+  --bad: #c43d3d; --bad-soft: #fbe9e9; --warn: #b7791f; --warn-soft: #fbf1df;
+  --code-bg: #fbfbfc; --kw: #8a3ab9; --str: #1f7a4d; --num: #b45309; --com: #8a94a6; --def: #2f6fde; --bi: #0e7490;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --panel: #1a1e26; --text: #e4e7ec; --muted: #98a2b3; --border: #2b313c;
+    --accent: #6ea0ff; --accent-soft: #1f2b44; --ok: #4cc283; --ok-soft: #173326;
+    --bad: #f07272; --bad-soft: #3a1d1f; --warn: #e3b05a; --warn-soft: #3a2e17;
+    --code-bg: #151920; --kw: #d7a6ff; --str: #a8dc76; --num: #ffb46b; --com: #8b93a5; --def: #8fb8ff; --bi: #6fd8e8;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--accent-soft); padding: 1px 4px; border-radius: 4px; }
+header { display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav a { padding: 5px 12px; border-radius: 6px; color: var(--muted); font-weight: 500; }
+nav a.active { background: var(--accent-soft); color: var(--accent); }
+nav a:hover { text-decoration: none; color: var(--text); }
+header .spacer { flex: 1; }
+main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+main.wide { max-width: none; padding: 12px 16px; }
+.grid { display: grid; gap: 16px; }
+.cols-2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.tiles { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+@media (max-width: 860px) { .cols-2 { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.tile .v { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile .l { color: var(--muted); font-size: 12.5px; }
+.todo { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border); }
+.todo:first-of-type { border-top: 0; padding-top: 0; }
+.todo .n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 650; display: grid; place-items: center; }
+.todo .body { flex: 1; min-width: 0; }
+.todo .sub { color: var(--muted); font-size: 12.5px; }
+.btn { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.scroll { overflow-x: auto; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.info { background: var(--accent-soft); color: var(--accent); }
+.pill.muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.meter { display: inline-flex; gap: 3px; vertical-align: middle; }
+.meter i { width: 18px; height: 8px; border-radius: 2px; background: var(--border); }
+.meter i.on { background: var(--accent); }
+.muted { color: var(--muted); } .empty { color: var(--muted); font-style: italic; }
+.md h1, .md h2, .md h3 { font-size: 14px; margin: 14px 0 6px; } .md h1:first-child, .md h2:first-child, .md h3:first-child { margin-top: 0; }
+.md p { margin: 6px 0; } .md ul, .md ol { margin: 4px 0; padding-left: 22px; } .md li { margin: 2px 0; }
+.md table { margin: 8px 0; }
+.check { list-style: none; padding-left: 0 !important; }
+.check li::before { content: "○ "; color: var(--muted); } .check li.done::before { content: "✓ "; color: var(--ok); } .check li.done { color: var(--muted); }
+/* workspace */
+.ws-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ws-head h2 { margin: 0; font-size: 18px; }
+.timer { font-family: var(--mono); font-size: 15px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); font-variant-numeric: tabular-nums; }
+.timer.running { border-color: var(--ok); color: var(--ok); }
+.ws { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; height: calc(100vh - 120px); min-height: 520px; }
+@media (max-width: 1000px) { .ws { grid-template-columns: 1fr; height: auto; } .ws > .pane { height: 80vh; } }
+.pane { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; min-height: 0; overflow: hidden; }
+.tabs { display: flex; gap: 2px; padding: 6px 8px; border-bottom: 1px solid var(--border); align-items: center; flex-wrap: wrap; }
+.tabs .tab { padding: 4px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; border: 0; background: none; font: inherit; font-size: 13px; }
+.tabs .tab.active { background: var(--accent-soft); color: var(--accent); }
+.tabs .spacer { flex: 1; }
+iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+.editor-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.CodeMirror { flex: 1; height: auto; font-family: var(--mono); font-size: 13.5px; background: var(--code-bg); color: var(--text); }
+.CodeMirror-gutters { background: var(--code-bg); border-right: 1px solid var(--border); }
+.CodeMirror-linenumber { color: var(--com); } .CodeMirror-cursor { border-left-color: var(--text); }
+.CodeMirror-selected { background: var(--accent-soft) !important; } .CodeMirror-focused .CodeMirror-selected { background: var(--accent-soft) !important; }
+/* .cm-s-default prefix needed: CodeMirror's default theme (#708, #00f, #30a…) otherwise wins and is unreadable on dark. */
+.cm-s-default .cm-keyword, .cm-s-default .cm-operator.cm-keyword { color: var(--kw); font-weight: 500; }
+.cm-s-default .cm-string, .cm-s-default .cm-string-2 { color: var(--str); }
+.cm-s-default .cm-number, .cm-s-default .cm-atom { color: var(--num); }
+.cm-s-default .cm-comment { color: var(--com); font-style: italic; }
+.cm-s-default .cm-def { color: var(--def); }
+.cm-s-default .cm-builtin { color: var(--bi); }
+.cm-s-default .cm-variable, .cm-s-default .cm-variable-2, .cm-s-default .cm-property,
+.cm-s-default .cm-operator, .cm-s-default .cm-punctuation, .cm-s-default .cm-bracket { color: var(--text); }
+.cm-s-default .cm-variable-3, .cm-s-default .cm-type, .cm-s-default .cm-meta { color: var(--bi); }
+.cm-s-default .cm-error { color: var(--bad); }
+.CodeMirror-matchingbracket { color: var(--ok) !important; font-weight: 700; }
+textarea.code { flex: 1; width: 100%; resize: none; border: 0; padding: 10px 12px; font-family: var(--mono); font-size: 13.5px; background: var(--code-bg); color: var(--text); outline: none; tab-size: 4; }
+.out { border-top: 1px solid var(--border); max-height: 42%; overflow: auto; padding: 10px 12px; flex: none; }
+.out pre { font-family: var(--mono); font-size: 12.5px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin: 4px 0 8px; white-space: pre-wrap; max-height: 200px; overflow: auto; }
+.sec-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 4px; }
+.sec-head .spacer { flex: 1; }
+.out textarea { width: 100%; height: 90px; font-family: var(--mono); font-size: 12.5px; background: var(--code-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+.status { font-size: 12.5px; color: var(--muted); }
+.banner { padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); } .banner.bad { background: var(--bad-soft); color: var(--bad); }
+.kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Practice Dashboard</h1>
+  <nav id="nav">
+    <a href="#/">Overview</a><a href="#/problems">Problems</a><a href="#/skills">Skills</a><a href="#/log">Log</a><a href="#/study">Study</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="btn" onclick="refresh()" title="Re-read the learning/*.md files">Reload data</button>
+</header>
+<main id="app"><p class="muted">Loading…</p></main>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let S = null;          // repo state from /api/state
+let ws = null;         // current workspace state
+let tick = null;
+
+async function api(path, body) {
+  const opts = body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Dashboard": "1" }, body: JSON.stringify(body) } : {};
+  const r = await fetch(path, opts);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+// ---------- tiny markdown ----------
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
+    .replace(/(^|\s)_([^_]+)_(?=\s|$|[.,])/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s)<]+)/g, '$1<a href="$2" target="_blank">$2</a>');
+}
+function md(text) {
+  const lines = (text || "").split(/\r?\n/);
+  let html = "", i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,6})\s+(.*)/))) { html += `<h3>${inline(m[2])}</h3>`; i++; continue; }
+    if (l.trim().startsWith("|")) {
+      const rows = []; while (i < lines.length && lines[i].trim().startsWith("|")) rows.push(lines[i++]);
+      const cells = r => r.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      html += `<div class="scroll"><table><tr>${cells(rows[0]).map(c => `<th>${inline(c)}</th>`).join("")}</tr>` +
+        rows.slice(2).map(r => `<tr>${cells(r).map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + "</table></div>";
+      continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
+      const ordered = /^\s*\d+\./.test(l);
+      let items = [];
+      while (i < lines.length && (/^\s*([-*]|\d+\.)\s+/.test(lines[i]) || (/^\s{2,}\S/.test(lines[i]) && items.length))) {
+        const x = lines[i++]; const indent = x.match(/^\s*/)[0].length;
+        const t = x.replace(/^\s*([-*]|\d+\.)\s+/, "");
+        const cb = t.match(/^\[( |x|X)\]\s+(.*)/);
+        const content = cb ? cb[2] : t;
+        const cls = cb ? (cb[1] !== " " ? "done" : "") : "";
+        items.push(`<li class="${cls}" style="margin-left:${indent > 1 ? 18 : 0}px">${inline(content)}</li>`);
+      }
+      const isCheck = items.some(x => /class="(done)?"/.test(x)) && /\[( |x|X)\]/.test(lines.slice(0, i).join("\n"));
+      html += ordered ? `<ol>${items.join("")}</ol>` : `<ul class="${isCheck ? "check" : ""}">${items.join("")}</ul>`;
+      continue;
+    }
+    const para = []; while (i < lines.length && lines[i].trim() && !/^(#|\||\s*([-*]|\d+\.)\s)/.test(lines[i])) para.push(lines[i++]);
+    html += `<p>${inline(para.join(" "))}</p>`;
+  }
+  return `<div class="md">${html}</div>`;
+}
+
+// ---------- timer (per problem, in this browser) ----------
+const timerKey = p => "timer:" + p;
+function timerMs(p) { const t = store.get(timerKey(p), { acc: 0, start: null }); return t.acc + (t.start ? Date.now() - t.start : 0); }
+function timerRunning(p) { return !!store.get(timerKey(p), {}).start; }
+function timerToggle(p) {
+  const t = store.get(timerKey(p), { acc: 0, start: null });
+  if (t.start) { t.acc += Date.now() - t.start; t.start = null; } else t.start = Date.now();
+  store.set(timerKey(p), t);
+}
+function fmt(ms) { const s = Math.floor(ms / 1000); return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+const mins = ms => Math.round(ms / 60000);
+
+// ---------- derived data ----------
+const OUTCOME = { A: ["Solved alone", "ok"], H: ["Hint", "warn"], E: ["Read analysis", "warn"], X: ["Unsolved", "bad"], "?": ["Not recorded", "muted"] };
+function outcomePill(o) { const k = (o || "?").trim().charAt(0).toUpperCase(); const [l, c] = OUTCOME[k] || OUTCOME["?"]; return `<span class="pill ${c}" title="${l}">${esc(k)} · ${l}</span>`; }
+function problemStatus(p) {
+  if (p.log.length) return outcomePill(p.log[p.log.length - 1].Outcome);
+  if (p.solution || timerMs(p.path) > 0) return `<span class="pill info">In progress</span>`;
+  return `<span class="pill muted">Not started</span>`;
+}
+function todos() {
+  const out = [];
+  for (const p of S.problems) if (!p.log.length && p.solution) out.push({
+    title: `Finish <strong>${esc(p.name)}</strong>, then ask Claude to review it`,
+    sub: `Solution file exists but there's no log entry yet.${timerMs(p.path) ? ` Timer: ${mins(timerMs(p.path))} min.` : ""}`,
+    action: `<a class="btn primary" href="#/problem/${encodeURIComponent(p.path)}">Open</a>`,
+  });
+  for (const a of S.readingActive) if (!a.done) out.push({ title: inline(a.text), sub: "From Study queue → Active", action: `<a class="btn" href="#/study">View</a>` });
+  outer: for (const it of S.diagnostic) for (const pr of it.problems) {
+    if (pr.logged) continue;
+    const inRepo = pr.repo && S.problems.find(p => p.path === pr.repo);
+    if (inRepo && inRepo.solution) continue; // already listed above
+    out.push(inRepo
+      ? { title: `Solve <strong>${esc(pr.name)}</strong>`, sub: `Next in the ${esc(S.diagnosticTitle || "diagnostic block")}. Start the timer when you start reading.`, action: `<a class="btn primary" href="#/problem/${encodeURIComponent(pr.repo)}">Start</a>` }
+      : { title: `Add <strong>${esc(pr.name)}</strong> (${esc(it.title)}) to the repo`, sub: "Not in the repo yet. Ask Claude to copy it in from the archive.", action: "" });
+    break outer;
+  }
+  return out;
+}
+
+// ---------- views ----------
+function viewOverview() {
+  const log = S.log, attempts = log.length;
+  const alone = log.filter(r => (r.Outcome || "").trim().startsWith("A")).length;
+  const tested = S.skills.filter(s => +s.Level > 0).length;
+  const diagNames = S.diagnostic.flatMap(it => it.problems);
+  const diagDone = diagNames.filter(p => p.logged).length;
+  const td = todos();
+  const review = S.reviews[0];
+  return `
+  <div class="grid cols-2">
+    <div class="grid" style="align-content:start">
+      <div class="card"><h2>Next up</h2>
+        ${td.length ? td.map((t, i) => `<div class="todo"><div class="n">${i + 1}</div><div class="body"><div>${t.title}</div><div class="sub">${t.sub}</div></div>${t.action}</div>`).join("") : `<p class="empty">Nothing queued. Ask Claude for the next block of problems.</p>`}
+      </div>
+      <div class="card"><h2>Recent attempts</h2>${logTable(log.slice(-5).reverse(), true)}</div>
+      ${review ? `<div class="card"><h2>Latest review · ${esc(review.title)}</h2>${md(review.body)}</div>` : ""}
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="grid tiles">
+        <div class="card tile"><div class="v">${attempts}</div><div class="l">attempts logged</div></div>
+        <div class="card tile"><div class="v">${attempts ? Math.round(100 * alone / attempts) + "%" : "–"}</div><div class="l">solved alone</div></div>
+        <div class="card tile"><div class="v">${tested}<span class="muted" style="font-size:15px">/${S.skills.length}</span></div><div class="l">topics with evidence</div></div>
+        <div class="card tile"><div class="v">${diagDone}<span class="muted" style="font-size:15px">/${diagNames.length}</span></div><div class="l">diagnostic problems</div></div>
+      </div>
+      <div class="card"><h2>${esc(S.diagnosticTitle || "Diagnostic block")}</h2>
+        ${S.diagnostic.map(it => `<div style="margin-bottom:8px"><strong>${esc(it.title)}</strong>
+          <ul class="check" style="margin:2px 0">${it.problems.map(p => `<li class="${p.logged ? "done" : ""}">${p.repo ? `<a href="#/problem/${encodeURIComponent(p.repo)}">${esc(p.name)}</a>` : esc(p.name)}${!p.repo && !p.logged ? ` <span class="muted" style="font-size:12px">(not in repo)</span>` : ""}</li>`).join("")}</ul></div>`).join("") || `<p class="empty">No diagnostic block in reading.md.</p>`}
+      </div>
+      <div class="card"><h2>Skill levels</h2>${skillTable(true)}</div>
+    </div>
+  </div>`;
+}
+function meter(n) { n = +n || 0; return `<span class="meter" title="Level ${n}/4">${[1, 2, 3, 4].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`; }
+function skillTable(compact) {
+  const rows = S.skills.slice().sort((a, b) => compact ? (+b.Level - +a.Level) : 0);
+  return `<div class="scroll"><table><tr><th>Topic</th><th>Level</th>${compact ? "" : "<th>Evidence</th><th>Notes / gaps</th>"}</tr>
+    ${rows.map(s => `<tr><td>${inline(s.Topic)}</td><td style="white-space:nowrap">${meter(s.Level)} <span class="muted">${esc(s.Level)}</span></td>${compact ? "" : `<td>${inline(s.Evidence)}</td><td>${inline(s["Notes / gaps"])}</td>`}</tr>`).join("")}</table></div>`;
+}
+function logTable(rows, compact) {
+  if (!rows.length) return `<p class="empty">No attempts logged yet.</p>`;
+  const cols = compact ? ["Date", "Problem", "Outcome", "Time", "Mistakes"] : Object.keys(rows[0]);
+  return `<div class="scroll"><table><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>
+    ${rows.map(r => `<tr>${cols.map(c => `<td>${c === "Outcome" ? outcomePill(r[c]) : inline(r[c])}</td>`).join("")}</tr>`).join("")}</table></div>`;
+}
+function viewSkills() {
+  return `<div class="card"><h2>Skill map</h2>${skillTable(false)}
+    <p class="muted" style="margin-top:12px">Levels: 0 untested · 1 needed the analysis · 2 hint / small set only · 3 solved alone, all sets · 4 contest-ready (fast, clean, repeated)</p></div>
+    ${S.reviews.map(r => `<div class="card" style="margin-top:16px"><h2>Review · ${esc(r.title)}</h2>${md(r.body)}</div>`).join("")}`;
+}
+function viewLog() {
+  const tags = {}, outs = {};
+  for (const r of S.log) {
+    for (const t of (r.Mistakes || "").split(/[\s,;·]+/).map(x => x.replace(/`/g, "")).filter(Boolean)) tags[t] = (tags[t] || 0) + 1;
+    const o = (r.Outcome || "?").trim().charAt(0).toUpperCase(); outs[o] = (outs[o] || 0) + 1;
+  }
+  const chips = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="pill muted" style="margin:0 6px 6px 0">${esc(k)} × ${v}</span>`).join("") || `<span class="empty">none yet</span>`;
+  return `<div class="grid tiles" style="margin-bottom:16px">
+      <div class="card"><h2>Outcomes</h2>${chips(outs)}</div>
+      <div class="card"><h2>Mistake tags</h2>${chips(tags)}</div></div>
+    <div class="card"><h2>All attempts</h2>${logTable(S.log, false)}</div>`;
+}
+function viewStudy() {
+  return `<div class="grid">${Object.entries(S.reading).map(([t, b]) => `<div class="card"><h2>${esc(t)}</h2>${md(b)}</div>`).join("")}</div>`;
+}
+function viewProblems() {
+  return `<div class="card"><h2>Problems in the repo</h2><div class="scroll"><table>
+    <tr><th>Problem</th><th>Contest</th><th>Status</th><th>Solution</th><th>Tests</th><th>Timer</th></tr>
+    ${S.problems.map(p => `<tr><td><a href="#/problem/${encodeURIComponent(p.path)}"><strong>${esc(p.name)}</strong></a></td>
+      <td class="muted">${esc(p.contest)} ${esc(p.year)} · ${esc(p.round)}</td><td>${problemStatus(p)}</td>
+      <td>${p.solution ? `<code>${esc(p.solution)}</code>` : `<span class="muted">–</span>`}</td><td>${p.cases}</td>
+      <td class="muted">${timerMs(p.path) ? fmt(timerMs(p.path)) : "–"}</td></tr>`).join("")}
+    </table></div><p class="muted" style="margin-top:10px">To add a problem, ask Claude to copy it in from the archive. It appears here after <em>Reload data</em>.</p></div>`;
+}
+
+// ---------- workspace ----------
+let cm = null;
+const getCode = () => cm ? cm.getValue() : $("#code").value;
+const setCode = v => cm ? cm.setValue(v) : ($("#code").value = v);
+
+async function viewProblem(path) {
+  const p = S.problems.find(x => x.path === path);
+  if (!p) return `<p>Unknown problem <code>${esc(path)}</code>.</p>`;
+  const d = await api("/api/problem?path=" + encodeURIComponent(path));
+  ws = { path, p, d, dirty: { solution: false, notes: false }, left: "statement", right: "code" };
+  return `
+  <div class="ws-head">
+    <a href="#/problems" class="muted">← Problems</a>
+    <h2>${esc(p.name)}</h2><span class="muted">${esc(p.contest)} ${esc(p.year)} · ${esc(p.round)}</span>${problemStatus(p)}
+    <div style="flex:1"></div>
+    <span id="timer" class="timer">0:00:00</span>
+    <button class="btn" id="timerBtn" onclick="timerToggle(ws.path); renderTimer()">Start</button>
+    <button class="btn" onclick="if(confirm('Reset the timer for this problem?')){store.set(timerKey(ws.path),{acc:0,start:null});renderTimer()}">Reset</button>
+  </div>
+  <div class="ws">
+    <div class="pane">
+      <div class="tabs">
+        <button class="tab active" data-left="statement" onclick="showLeft('statement')">Statement</button>
+        <button class="tab" data-left="samples" onclick="showLeft('samples')">Samples</button>
+        ${p.hasAnalysis ? `<button class="tab" data-left="analysis" onclick="showLeft('analysis')">Analysis${store.get("analysis:" + path) ? " (viewed)" : " 🔒"}</button>` : ""}
+      </div>
+      <div id="left" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+    </div>
+    <div class="pane">
+      <div class="tabs">
+        <button class="tab active" data-right="code" onclick="showRight('code')">Solution</button>
+        <button class="tab" data-right="notes" onclick="showRight('notes')">NOTES.md</button>
+        <div class="spacer"></div>
+        <span class="status" id="saveStatus"></span>
+        <button class="btn" onclick="saveCurrent()" title="Ctrl+S">Save</button>
+        <button class="btn primary" id="runBtn" onclick="runTests()" title="Ctrl+Enter">Run tests</button>
+      </div>
+      ${d.multiplePy ? `<div class="banner bad" style="margin:8px">More than one .py file in this folder. The runner needs exactly one.</div>` : ""}
+      <div id="codePane" class="editor-wrap"><textarea id="code" class="code" spellcheck="false"></textarea></div>
+      <div id="notesPane" class="editor-wrap" style="display:none">
+        ${d.notes ? "" : `<div style="padding:8px 12px" id="notesInit"><button class="btn" onclick="initNotes()">Create from template</button> <span class="muted">Fill in your approach; Claude adds the tutor review.</span></div>`}
+        <textarea id="notes" class="code" spellcheck="true" style="font-family:inherit"></textarea>
+      </div>
+      <div class="out" id="out">
+        <div class="status">Save <span class="kbd">Ctrl+S</span> · Run tests <span class="kbd">Ctrl+Enter</span> · ${d.cases.length} test file(s)${d.solution ? ` · <code>${esc(d.solution)}</code>` : ` · new file will be <code>solution.py</code>`}</div>
+        <div class="sec-head"><strong>Test files</strong><span class="spacer"></span>
+          <button class="btn" onclick="clearOut('#results')">Clear</button></div>
+        <div id="results"><p class="muted" style="margin:4px 0">Click <strong>Run tests</strong> to run every sample/secret file.</p></div>
+        <div class="sec-head" style="margin-top:12px"><strong>Custom test</strong>
+          <span class="muted">type an input, or load a sample and edit it</span><span class="spacer"></span>
+          ${d.samples.map((s, i) => `<button class="btn" onclick="loadSample(${i})">Load ${esc(s.label)}</button>`).join("")}
+          <button class="btn" onclick="$('#stdin').value='';$('#want').value='';clearOut('#customOut')">Clear</button></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">
+          <div><div class="muted">input (stdin)</div><textarea id="stdin" placeholder="1&#10;5&#10;..."></textarea></div>
+          <div><div class="muted">expected output (optional, compared when given)</div><textarea id="want" placeholder="Case #1: ..."></textarea></div>
+        </div>
+        <button class="btn primary" style="margin-top:6px" onclick="runCustom()">Run custom test</button>
+        <div id="customOut"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function mountProblem() {
+  const d = ws.d;
+  $("#code").value = d.code;
+  $("#notes").value = d.notes;
+  if (window.CodeMirror) {
+    cm = CodeMirror.fromTextArea($("#code"), {
+      mode: "python", lineNumbers: true, indentUnit: 4, tabSize: 4, matchBrackets: true,
+      extraKeys: { Tab: c => c.somethingSelected() ? c.indentSelection("add") : c.replaceSelection("    "), "Shift-Tab": c => c.indentSelection("subtract") },
+    });
+    cm.on("change", () => markDirty("solution"));
+  } else {
+    cm = null;
+    $("#code").addEventListener("input", () => markDirty("solution"));
+    $("#code").addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault(); document.execCommand("insertText", false, "    "); } });
+  }
+  $("#notes").addEventListener("input", () => markDirty("notes"));
+  showLeft("statement");
+  renderTimer();
+  clearInterval(tick); tick = setInterval(renderTimer, 1000);
+}
+function markDirty(k) { ws.dirty[k] = true; $("#saveStatus").textContent = "unsaved changes"; }
+function renderTimer() {
+  if (!ws || !$("#timer")) return;
+  const ms = timerMs(ws.path), run = timerRunning(ws.path);
+  $("#timer").textContent = fmt(ms); $("#timer").classList.toggle("running", run);
+  $("#timerBtn").textContent = run ? "Pause" : (ms ? "Resume" : "Start");
+}
+function showLeft(which) {
+  const p = ws.p, el = $("#left");
+  if (which === "analysis" && !store.get("analysis:" + ws.path)) {
+    const m = mins(timerMs(ws.path));
+    if (!confirm(`You've spent ${m} min on this problem (by the timer).\nThe plan is about 45 min before reading the analysis, and reading it means this attempt is logged as E.\n\nOpen the analysis anyway?`)) return;
+    store.set("analysis:" + ws.path, new Date().toISOString());
+  }
+  document.querySelectorAll("[data-left]").forEach(b => b.classList.toggle("active", b.dataset.left === which));
+  if (which === "samples") {
+    el.innerHTML = `<div style="overflow:auto;padding:12px" class="out" style="max-height:none">${ws.d.samples.map(s => `<div><strong>${esc(s.label)}</strong>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px"><div><div class="muted">input</div><pre>${esc(s.input)}</pre></div><div><div class="muted">expected</div><pre>${esc(s.answer)}</pre></div></div>
+      <button class="btn" onclick="loadSample(${ws.d.samples.indexOf(s)})">Use as custom test</button></div>`).join("") || `<p class="empty">No samples.</p>`}</div>`;
+  } else {
+    const file = which === "analysis" ? "analysis.pdf" : "statement.pdf";
+    el.innerHTML = `<iframe src="/files/${p.path.split("/").map(encodeURIComponent).join("/")}/${file}#view=FitH"></iframe>`;
+  }
+}
+function showRight(which) {
+  ws.right = which;
+  document.querySelectorAll("[data-right]").forEach(b => b.classList.toggle("active", b.dataset.right === which));
+  $("#codePane").style.display = which === "code" ? "" : "none";
+  $("#notesPane").style.display = which === "notes" ? "" : "none";
+  if (which === "code" && cm) cm.refresh();
+}
+function initNotes() {
+  const p = ws.p;
+  let t = ws.d.notesTemplate
+    .replace("<Problem name>", p.name)
+    .replace(/<e\.g\.[^>]*>/, `${p.contest} ${p.year} ${p.round}`)
+    .replace("YYYY-MM-DD", S.today);
+  if (timerMs(ws.path)) t = t.replace("~__ min", `~${mins(timerMs(ws.path))} min`);
+  $("#notes").value = t; $("#notesInit")?.remove(); markDirty("notes");
+}
+async function save(kind) {
+  const content = kind === "solution" ? getCode() : $("#notes").value;
+  const r = await api("/api/save", { path: ws.path, kind, content });
+  ws.dirty[kind] = false;
+  if (kind === "solution" && !ws.d.solution) { ws.d.solution = "solution.py"; ws.p.solution = "solution.py"; }
+  $("#saveStatus").textContent = `saved ${r.saved.split("/").pop()} ${new Date().toLocaleTimeString()}`;
+}
+async function saveCurrent() {
+  try { await save(ws.right === "notes" ? "notes" : "solution"); } catch (e) { $("#saveStatus").textContent = "save failed: " + e.message; }
+}
+async function runTests() {
+  const btn = $("#runBtn"); btn.disabled = true; btn.textContent = "Running…";
+  $("#results").innerHTML = `<p class="muted">Running ${ws.d.cases.length} test file(s)…</p>`;
+  try {
+    if (ws.dirty.solution || !ws.d.solution) await save("solution");
+    const { results } = await api("/api/run", { path: ws.path, timeout: 30 });
+    const ok = results.filter(r => r.status === "OK").length;
+    const cls = s => s === "OK" ? "ok" : s === "TLE" ? "warn" : "bad";
+    $("#results").innerHTML = `<p style="margin:8px 0 4px"><strong>${ok}/${results.length} passed</strong></p><table>
+      ${results.map(r => `<tr><td><span class="pill ${cls(r.status)}">${r.status}</span></td><td><code>${esc(r.label)}</code></td>
+        <td class="muted" style="white-space:nowrap">${r.time.toFixed(2)}s</td><td style="font-family:var(--mono);font-size:12px">${esc(r.detail)}</td></tr>`).join("")}</table>`;
+  } catch (e) { $("#results").innerHTML = `<div class="banner bad">${esc(e.message)}</div>`; }
+  btn.disabled = false; btn.textContent = "Run tests";
+}
+async function runCustom() {
+  $("#customOut").innerHTML = `<p class="muted">Running…</p>`;
+  try {
+    if (ws.dirty.solution || !ws.d.solution) await save("solution");
+    const r = await api("/api/exec", { path: ws.path, stdin: $("#stdin").value, timeout: 30 });
+    const want = $("#want").value.trim();
+    const verdict = !want ? "" : r.stdout.split(/\s+/).join(" ").trim() === want.split(/\s+/).join(" ")
+      ? `<span class="pill ok">matches expected</span>` : `<span class="pill bad">differs from expected</span>`;
+    $("#customOut").innerHTML = `<div class="muted" style="margin-top:6px">${verdict} exit ${r.rc ?? "–"} · ${r.time.toFixed(2)}s</div>
+      <div class="muted">stdout</div><pre>${esc(clip(r.stdout)) || " "}</pre>${r.stderr ? `<div class="muted">stderr</div><pre style="color:var(--bad)">${esc(clip(r.stderr))}</pre>` : ""}`;
+  } catch (e) { $("#customOut").innerHTML = `<div class="banner bad">${esc(e.message)}</div>`; }
+}
+// Rendering megabytes into the DOM is what makes scrolling lag, so show only the start.
+function clip(s, n = 5000) { return s.length <= n ? s : s.slice(0, n) + `\n… (${(s.length - n).toLocaleString()} more chars hidden)`; }
+function clearOut(sel) { $(sel).innerHTML = ""; }
+function loadSample(i) { const s = ws.d.samples[i]; $("#stdin").value = s.input; $("#want").value = s.answer; clearOut("#customOut"); }
+document.addEventListener("keydown", e => {
+  if (!ws || !$("#codePane")) return;
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); saveCurrent(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runTests(); }
+});
+window.addEventListener("beforeunload", e => { if (ws && (ws.dirty.solution || ws.dirty.notes)) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- router ----------
+let lastHash = location.hash;
+async function route() {
+  if (ws && (ws.dirty.solution || ws.dirty.notes) && !confirm("You have unsaved changes. Leave anyway?")) { history.replaceState(null, "", lastHash || "#/"); return; }
+  lastHash = location.hash;
+  clearInterval(tick); ws = null; cm = null;
+  const h = location.hash.replace(/^#/, "") || "/";
+  const app = $("#app");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + h || (h.startsWith("/problem/") && a.getAttribute("href") === "#/problems")));
+  app.classList.toggle("wide", h.startsWith("/problem/"));
+  try {
+    if (h.startsWith("/problem/")) { app.innerHTML = await viewProblem(decodeURIComponent(h.slice(9))); if (ws) mountProblem(); return; }
+    app.innerHTML = ({ "/": viewOverview, "/problems": viewProblems, "/skills": viewSkills, "/log": viewLog, "/study": viewStudy }[h] || viewOverview)();
+  } catch (e) { app.innerHTML = `<div class="banner bad">${esc(e.message)}</div>`; }
+}
+async function refresh() {
+  if (ws && (ws.dirty.solution || ws.dirty.notes)) { alert("Save first. Reloading would discard your edits."); return; }
+  S = await api("/api/state"); route();
+}
+window.addEventListener("hashchange", route);
+refresh().catch(e => { $("#app").innerHTML = `<div class="banner bad">Couldn't load data: ${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>

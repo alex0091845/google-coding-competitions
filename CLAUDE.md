@@ -21,6 +21,11 @@ questions.
 - `learning/skills.md`: skill map. Current level per topic, evidence, open gaps.
 - `learning/reading.md`: study queue. Each item says which gap it addresses.
 - `tools/run.py`: test runner (`python tools/run.py <problem_dir>`).
+- `tools/dashboard.py`: local web dashboard (`python tools/dashboard.py`). It
+  parses `learning/*.md`, so keep their table/heading formats stable (log and
+  skills tables, `## Active` checkboxes, numbered `**Title**: Name (topic), …`
+  items in the diagnostic block). The user can edit and run solutions there; the
+  per-problem timer lives in the browser, so ask for the time if it isn't noted.
 
 ## When the user finishes (or gives up on) a problem
 

@@ -9,10 +9,10 @@ Each item names the gap it addresses. Check items off and add a one-line takeawa
 
 ## Active
 
-- [ ] **Setup: Python judge-style I/O** (do this before the first problem)
-  - The judge feeds input on stdin and reads stdout, and so does `tools/run.py`.
-  - Pattern: `data = sys.stdin.buffer.read().split()`, walk an index through it, collect output lines, and `print("\n".join(out))` once at the end.
-  - Read: USACO Guide → "Input & Output" and "Fast I/O" (Python tab).
+- [x] **Setup: Python judge-style I/O**. Done: `it = iter(sys.stdin.buffer.read().split())`, `ni = lambda: int(next(it))`, tokens are bytes (`s[i]` is an int).
+- [ ] **Bit manipulation basics** (suspected gap: Building Palindromes needed a hint on int-as-bitmask)
+  - Read: Competitive Programmer's Handbook, ch. 10 "Bit manipulation" (10.1–10.3: bit ops, representing sets as ints).
+  - Drill in a REPL: set/clear/flip/test bit k, `x.bit_count()`, `x & (x - 1)`, `x & -x`.
 
 ## Diagnostic block (next ~8 problems)
 Goal: get evidence across topics. Don't read the analysis until you've worked on a problem for about 45 minutes. Log every attempt.
